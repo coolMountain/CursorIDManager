@@ -44,7 +44,7 @@ taskkill /f /im cursor.exe
 3. 打开终端，执行以下命令：
 
    ```bash
-   sudo bash <(curl -fsSL https://raw.githubusercontent.com/hamflx/cursor-reset/main/reset.sh)
+   curl -fsSL https://raw.githubusercontent.com/hamflx/cursor-reset/main/reset.sh | sudo bash
    ```
 
 4. 启动 Cursor 并使用新账号登录（不要使用之前的账号）
@@ -52,7 +52,7 @@ taskkill /f /im cursor.exe
 如果需要恢复到原始状态，可以使用以下命令：
 
 ```bash
-sudo bash <(curl -fsSL https://raw.githubusercontent.com/hamflx/cursor-reset/main/reset.sh) --restore
+curl -fsSL https://raw.githubusercontent.com/hamflx/cursor-reset/main/reset.sh | sudo bash -s -- --restore
 ```
 
 如果脚本卡在"正在等待 Cursor 进程退出..."，可以在终端中执行以下命令强制结束 Cursor 进程：
@@ -151,7 +151,7 @@ taskkill /f /im cursor.exe
 3. Open terminal and execute the following command:
 
    ```bash
-   sudo bash <(curl -fsSL https://raw.githubusercontent.com/hamflx/cursor-reset/main/reset.sh)
+   curl -fsSL https://raw.githubusercontent.com/hamflx/cursor-reset/main/reset.sh | sudo bash
    ```
 
 4. Start Cursor and sign in with a new account (do not use the previous account)
@@ -159,7 +159,7 @@ taskkill /f /im cursor.exe
 To restore to the original state, you can use the following command:
 
 ```bash
-sudo bash <(curl -fsSL https://raw.githubusercontent.com/hamflx/cursor-reset/main/reset.sh) --restore
+curl -fsSL https://raw.githubusercontent.com/hamflx/cursor-reset/main/reset.sh | sudo bash -s -- --restore
 ```
 
 If the script is stuck at "Cursor is running", you can force kill Cursor processes by running the following command in the terminal:
