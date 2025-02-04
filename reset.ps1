@@ -1,6 +1,3 @@
-# 导入需要的类型
-Add-Type -AssemblyName System.Web.Extensions
-
 # 生成类似 macMachineId 的格式
 function New-MacMachineId {
     $template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
@@ -75,16 +72,26 @@ if (Test-Path $storageJsonPath) {
     Set-ItemProperty $storageJsonPath -Name IsReadOnly -Value $false
     
     # 更新文件内容
-    $jsonContent = Get-Content $storageJsonPath -Raw
-    $ser = New-Object System.Web.Script.Serialization.JavaScriptSerializer
-    $data = $ser.DeserializeObject($jsonContent)
+    $jsonContent = Get-Content $storageJsonPath -Raw -Encoding UTF8
+    $data = $jsonContent | ConvertFrom-Json
     
-    $data["telemetry.machineId"] = $newMachineId
-    $data["telemetry.macMachineId"] = $newMacMachineId
-    $data["telemetry.devDeviceId"] = $newDevDeviceId
-    $data["telemetry.sqmId"] = $newSqmId
+    # 检查并更新或添加属性
+    $properties = @{
+        "telemetry.machineId" = $newMachineId
+        "telemetry.macMachineId" = $newMacMachineId
+        "telemetry.devDeviceId" = $newDevDeviceId
+        "telemetry.sqmId" = $newSqmId
+    }
+
+    foreach ($prop in $properties.Keys) {
+        if (-not (Get-Member -InputObject $data -Name $prop -MemberType Properties)) {
+            $data | Add-Member -NotePropertyName $prop -NotePropertyValue $properties[$prop]
+        } else {
+            $data.$prop = $properties[$prop]
+        }
+    }
     
-    $newJson = $ser.Serialize($data)
+    $newJson = $data | ConvertTo-Json
     
     # 使用 StreamWriter 保存文件，确保 UTF-8 无 BOM 且使用 LF 换行符
     $utf8NoBom = New-Object System.Text.UTF8Encoding $false
