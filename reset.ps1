@@ -85,7 +85,10 @@ if (Test-Path $storageJsonPath) {
     $data["telemetry.sqmId"] = $newSqmId
     
     $newJson = $ser.Serialize($data)
-    $newJson | Out-File $storageJsonPath -Encoding UTF8
+    
+    # 使用 StreamWriter 保存文件，确保 UTF-8 无 BOM 且使用 LF 换行符
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($storageJsonPath, $newJson.Replace("`r`n", "`n"), $utf8NoBom)
     
     # 恢复原始文件属性
     Set-ItemProperty $storageJsonPath -Name Attributes -Value $originalAttributes
