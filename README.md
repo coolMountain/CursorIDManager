@@ -22,11 +22,11 @@
 
 1. 在 Cursor IDE 中退出当前登录的账号
 2. 完全关闭 Cursor IDE
-3. 以管理员身份打开 PowerShell
+3. 以管理员身份打开命令提示符或 PowerShell
 4. 复制粘贴执行以下命令：
 
-   ```powershell
-   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass; iwr -Uri "https://raw.githubusercontent.com/hamflx/cursor-reset/refs/heads/main/reset.ps1" -UseBasicParsing | iex
+   ```batch
+   powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; iwr -Uri 'https://raw.githubusercontent.com/hamflx/cursor-reset/main/reset.ps1' -UseBasicParsing | iex"
    ```
 
 5. 重置完成后打开 Cursor IDE，使用新的账号登录（不要使用之前的账号）
@@ -129,11 +129,11 @@ If you value Cursor, please support the official version and pay for the develop
 
 1. Sign out of your current account in Cursor IDE
 2. Completely close Cursor IDE
-3. Open PowerShell as Administrator
+3. Open Command Prompt or PowerShell as Administrator
 4. Copy and paste the following command:
 
-   ```powershell
-   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass; iwr -Uri "https://raw.githubusercontent.com/hamflx/cursor-reset/refs/heads/main/reset.ps1" -UseBasicParsing | iex
+   ```batch
+   powershell -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; iwr -Uri 'https://raw.githubusercontent.com/hamflx/cursor-reset/main/reset.ps1' -UseBasicParsing | iex"
    ```
 
 5. After reset is complete, open Cursor IDE and sign in with a new account (do not use the previous account)
