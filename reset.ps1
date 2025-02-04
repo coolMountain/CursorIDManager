@@ -91,7 +91,7 @@ if (Test-Path $storageJsonPath) {
         }
     }
     
-    $newJson = $data | ConvertTo-Json
+    $newJson = $data | ConvertTo-Json -Depth 100
     
     # 使用 StreamWriter 保存文件，确保 UTF-8 无 BOM 且使用 LF 换行符
     $utf8NoBom = New-Object System.Text.UTF8Encoding $false
