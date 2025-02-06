@@ -91,9 +91,6 @@ restore_files() {
         rm -rf "/Applications/Cursor.app"
         mv "/Applications/Cursor.backup.app" "/Applications/Cursor.app" && {
             echo "已恢复 Cursor.app"
-            # 确保恢复后的应用权限正确
-            chown -R $REAL_USER:staff "/Applications/Cursor.app"
-            chmod -R 755 "/Applications/Cursor.app"
         } || echo "错误: 恢复 Cursor.app 失败"
     else
         echo "警告: Cursor.app 的备份不存在"
@@ -192,7 +189,7 @@ cp -R "/Applications/Cursor.app" "$TEMP_DIR" || {
 }
 
 # 确保临时目录的权限正确
-chown -R $REAL_USER "$TEMP_DIR"
+chown -R $REAL_USER:staff "$TEMP_DIR"
 chmod -R 755 "$TEMP_DIR"
 
 echo "正在移除临时应用的签名..."
@@ -285,8 +282,6 @@ mv "/Applications/Cursor.app" "/Applications/Cursor.backup.app" || {
     rm -rf "$TEMP_DIR"
     exit 1
 }
-# 设置备份应用的所有权为实际用户
-chown -R $REAL_USER:staff "/Applications/Cursor.backup.app"
 
 # 移动修改后的应用到应用程序文件夹
 echo "安装修改后的应用..."
@@ -296,10 +291,6 @@ mv "$TEMP_APP" "/Applications/" || {
     rm -rf "$TEMP_DIR"
     exit 1
 }
-
-# 设置新应用的权限
-chown -R $REAL_USER:staff "/Applications/Cursor.app"
-chmod -R 755 "/Applications/Cursor.app"
 
 # 清理临时目录
 rm -rf "$TEMP_DIR"
