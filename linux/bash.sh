@@ -135,9 +135,19 @@ if [ ! -d "squashfs-root" ]; then
 fi
 echo "Extracted AppImage to: $TEMP_DIR/squashfs-root"
 
-# Modify the main.js file inside the extracted AppImage
-MAIN_JS="$TEMP_DIR/squashfs-root/resources/app/out/main.js"
-if [ -f "$MAIN_JS" ]; then
+# Modify the files inside the extracted AppImage
+FILES=(
+    "$TEMP_DIR/squashfs-root/resources/app/out/main.js"
+    "$TEMP_DIR/squashfs-root/resources/app/out/vs/code/node/cliProcessMain.js"
+)
+
+# Process each file
+for file in "${FILES[@]}"; do
+    if [ ! -f "$file" ]; then
+        echo "Warning: File $file not found"
+        continue
+    fi
+
     # Ensure we have write permissions 
     chmod -R u+w "$TEMP_DIR/squashfs-root" || { 
         echo "Error: Unable to set permissions"
@@ -146,19 +156,14 @@ if [ -f "$MAIN_JS" ]; then
     }
     
     # Replace machine-id related code using sed
-    sed -i 's/"[^"]*\/etc\/machine-id[^"]*"/"uuidgen"/g' "$MAIN_JS" || {
-        echo "Error: Failed to modify main.js"
+    sed -i 's/"[^"]*\/etc\/machine-id[^"]*"/"uuidgen"/g' "$file" || {
+        echo "Error: Failed to modify $file"
         rm -rf "$TEMP_DIR"
         exit 1
     }
     
-    # Copy for inspection if needed
-    echo "Successfully modified main.js"
-else
-    echo "Error: main.js not found at $MAIN_JS"
-    rm -rf "$TEMP_DIR"
-    exit 1
-fi
+    echo "Successfully modified $file"
+done
 
 # Export the temporary directory path for later use
 APPIMAGETOOL_PATH="/tmp/appimagetool"
