@@ -67,16 +67,15 @@ pkill -9 Cursor
 
 1. 在 Cursor IDE 中退出当前登录的账号
 2. 完全关闭 Cursor IDE
-3. 确保 Cursor 是通过 AppImage 方式安装在 `/opt/cursor-bin/cursor-bin.AppImage`
-4. 打开终端，执行以下命令：
+3. 打开终端，执行以下命令：
 
    ```bash
-   curl -o /tmp/bash.sh https://raw.githubusercontent.com/hamflx/cursor-reset/refs/heads/main/linux/bash.sh && chmod +x /tmp/bash.sh && /tmp/bash.sh
+   curl -fsSL https://raw.githubusercontent.com/hamflx/cursor-reset/main/linux/bash.sh | bash -s -- --appimage /path/to/cursor.AppImage
    ```
 
-5. 启动 Cursor 并使用新账号登录（不要使用之前的账号）
+   将 `/path/to/cursor.AppImage` 替换为你的 Cursor AppImage 文件路径。
 
-⚠️ 注意：目前脚本仅支持通过 AppImage 方式安装的 Cursor，且安装路径必须为 `/opt/cursor-bin/cursor-bin.AppImage`。
+4. 启动 Cursor 并使用新账号登录（不要使用之前的账号）
 
 如果脚本卡在"正在等待 Cursor 进程退出..."，可以在终端中执行以下命令强制结束 Cursor 进程：
 
@@ -181,16 +180,15 @@ pkill -9 Cursor
 
 1. Sign out of your current account in Cursor IDE
 2. Completely close Cursor IDE
-3. Ensure Cursor is installed via AppImage at `/opt/cursor-bin/cursor-bin.AppImage`
-4. Open terminal and execute the following command:
+3. Open terminal and execute the following command:
 
    ```bash
-   curl -o /tmp/bash.sh https://raw.githubusercontent.com/hamflx/cursor-reset/refs/heads/main/linux/bash.sh && chmod +x /tmp/bash.sh && /tmp/bash.sh
+   curl -fsSL https://raw.githubusercontent.com/hamflx/cursor-reset/main/linux/bash.sh | bash -s -- --appimage /path/to/cursor.AppImage
    ```
 
-5. Start Cursor and sign in with a new account (do not use the previous account)
+   Replace `/path/to/cursor.AppImage` with the path to your Cursor AppImage file.
 
-⚠️ Note: Currently, the script only supports Cursor installed via AppImage and the installation path must be `/opt/cursor-bin/cursor-bin.AppImage`.
+4. Start Cursor and sign in with a new account (do not use the previous account)
 
 If the script is stuck at "Waiting for Cursor process to exit...", you can force kill Cursor processes by running the following command in the terminal:
 
@@ -222,8 +220,6 @@ The original MachineGuid will be automatically backed up to the `%USERPROFILE%\M
 
 ### Linux
 
-- Linux 操作系统
-- Python 3
-- Cursor IDE 0.45.x 版本（仅支持 AppImage 安装方式）
-- appimagetool（用于重新打包 AppImage）
-- 安装路径必须为 `/opt/cursor-bin/cursor-bin.AppImage`
+- Linux operating system
+- Cursor IDE 0.45.x (AppImage format)
+- appimagetool (will be automatically downloaded if not present)

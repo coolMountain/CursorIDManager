@@ -37,34 +37,25 @@ fi
 REAL_HOME=$(eval echo "~$REAL_USER")
 
 # Check for required commands
-for cmd in python3 uuidgen; do
+for cmd in uuidgen; do
     if ! command -v $cmd &> /dev/null; then
         echo "Error: Required command $cmd not found."
         exit 1
     fi
 done
 
-# Generate a macMachineId-like ID using Python
+# Generate a macMachineId-like ID
 generate_mac_machine_id() {
-    python3 -c '
-import uuid, random
-def generate():
-    template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
-    result = ""
-    for c in template:
-        if c == "x":
-            result += hex(random.randint(0, 15))[2:]
-        elif c == "y":
-            r = random.randint(0, 15)
-            result += hex((r & 0x3) | 0x8)[2:]
-        else:
-            result += c
-    return result
-print(generate())
-' 2>/dev/null || {
-    echo "Error: Failed to execute Python script for macMachineId."
-    exit 1
-}
+    # Generate a UUID and ensure 13th char is 4 and 17th is 8-b
+    uuid=$(uuidgen | tr '[:upper:]' '[:lower:]')
+    # Ensure 13th char is 4
+    uuid=$(echo $uuid | sed 's/.\{12\}\(.\)/4/')
+    # Ensure 17th char is 8-b (via random)
+    random_hex=$(echo $RANDOM | md5sum | cut -c1)
+    random_num=$((16#$random_hex))
+    new_char=$(printf '%x' $(( ($random_num & 0x3) | 0x8 )))
+    uuid=$(echo $uuid | sed "s/.\{16\}\(.\)/$new_char/")
+    echo $uuid
 }
 
 # Generate a 64-bit random ID
@@ -83,34 +74,6 @@ done
 
 echo "Cursor is not running. Continuing execution..."
 
-# Backup the original UUID from system
-BACKUP_DIR="$REAL_HOME/IOPlatformUUID_Backups"
-mkdir -p "$BACKUP_DIR" || {
-    echo "Error: Unable to create backup directory."
-    exit 1
-}
-
-ORIGINAL_UUID=""
-if [ -f /sys/class/dmi/id/product_uuid ]; then
-    ORIGINAL_UUID=$(cat /sys/class/dmi/id/product_uuid)
-fi
-if [ -z "$ORIGINAL_UUID" ]; then
-    echo "Warning: Unable to retrieve the original UUID."
-fi
-
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_FILE="$BACKUP_DIR/IOPlatformUUID_${TIMESTAMP}.txt"
-COUNTER=0
-while [ -f "$BACKUP_FILE" ]; do
-    COUNTER=$((COUNTER + 1))
-    BACKUP_FILE="$BACKUP_DIR/IOPlatformUUID_${TIMESTAMP}_$COUNTER.txt"
-done
-
-echo "$ORIGINAL_UUID" > "$BACKUP_FILE" || {
-    echo "Error: Unable to create backup file."
-    exit 1
-}
-
 # Update storage.json with new telemetry IDs
 STORAGE_JSON="$REAL_HOME/.config/Cursor/User/globalStorage/storage.json"
 NEW_MACHINE_ID=$(generate_random_id)
@@ -123,126 +86,145 @@ if [ -f "$STORAGE_JSON" ]; then
         echo "Error: Unable to backup storage.json."
         exit 1
     }
-    python3 -c "
-import json
-try:
-    with open('$STORAGE_JSON', 'r') as f:
-        data = json.load(f)
-    data['telemetry.machineId'] = '$NEW_MACHINE_ID'
-    data['telemetry.macMachineId'] = '$NEW_MAC_MACHINE_ID'
-    data['telemetry.devDeviceId'] = '$NEW_DEV_DEVICE_ID'
-    data['telemetry.sqmId'] = '$NEW_SQM_ID'
-    with open('$STORAGE_JSON', 'w') as f:
-        json.dump(data, f, indent=2)
-except Exception as e:
-    print('Error: Failed to update storage.json -', str(e))
-    exit(1)
-" || {
-    echo "Error: Python script execution failed while updating storage.json."
-    exit 1
-}
+    
+    # Use jq to update the JSON file if available
+    if command -v jq &> /dev/null; then
+        jq --arg mid "$NEW_MACHINE_ID" \
+           --arg mmid "$NEW_MAC_MACHINE_ID" \
+           --arg did "$NEW_DEV_DEVICE_ID" \
+           --arg sid "$NEW_SQM_ID" \
+           '.["telemetry.machineId"]=$mid | .["telemetry.macMachineId"]=$mmid | .["telemetry.devDeviceId"]=$did | .["telemetry.sqmId"]=$sid' \
+           "$STORAGE_JSON" > "${STORAGE_JSON}.tmp" && \
+        mv "${STORAGE_JSON}.tmp" "$STORAGE_JSON" || {
+            echo "Error: Failed to update storage.json"
+            exit 1
+        }
+    else
+        echo "Warning: jq not found. Skipping storage.json update."
+    fi
 fi
 
-# Change ownership of backup directory
-chown -R $REAL_USER:$(id -gn $REAL_USER) "$BACKUP_DIR" || {
-    echo "Warning: Unable to change ownership of the backup directory."
-}
-
 echo "Successfully updated all IDs:"
-echo "Backup file created at: $BACKUP_FILE"
 echo "New telemetry.machineId: $NEW_MACHINE_ID"
 echo "New telemetry.macMachineId: $NEW_MAC_MACHINE_ID"
 echo "New telemetry.devDeviceId: $NEW_DEV_DEVICE_ID"
 echo "New telemetry.sqmId: $NEW_SQM_ID"
 echo ""
 
+TEMP_DIR=$(mktemp -d)
+# Create temporary directory for download
+if [ -z "$TEMP_DIR" ] || [ ! -d "$TEMP_DIR" ]; then
+    echo "Error: Failed to create temporary directory"
+    exit 1
+fi
+
 # After updating PATH configuration, extract the AppImage
 APPIMAGE_DIR="$(dirname "$APPIMAGE_PATH")"
 cd "$APPIMAGE_DIR" || { echo "Error: Unable to change to AppImage directory"; exit 1; }
 
+# Create squashfs-root in temporary directory
+cd "$TEMP_DIR" || { echo "Error: Unable to change to temporary directory"; exit 1; }
+
+echo "Extracting AppImage..."
 if [ ! -d "squashfs-root" ]; then
-    "$APPIMAGE_PATH" --appimage-extract || { echo "Error: Extraction failed."; exit 1; }
+    "$APPIMAGE_PATH" --appimage-extract >/dev/null || { 
+        echo "Error: Extraction failed."
+        rm -rf "$TEMP_DIR"
+        exit 1
+    }
 fi
-echo "Extracted AppImage to: ./squashfs-root"
+echo "Extracted AppImage to: $TEMP_DIR/squashfs-root"
 
 # Modify the main.js file inside the extracted AppImage
-MAIN_JS="./squashfs-root/resources/app/out/main.js"
+MAIN_JS="$TEMP_DIR/squashfs-root/resources/app/out/main.js"
 if [ -f "$MAIN_JS" ]; then
     # Ensure we have write permissions 
-    chmod -R u+w ./squashfs-root || { echo "Error: Unable to set permissions"; exit 1; }
+    chmod -R u+w "$TEMP_DIR/squashfs-root" || { 
+        echo "Error: Unable to set permissions"
+        rm -rf "$TEMP_DIR"
+        exit 1
+    }
     
-    python3 - "$MAIN_JS" "$NEW_MACHINE_ID" <<'EOF'
-import re, sys, pathlib
-
-def replace_patterns(content, machine_id):
-    # Replace machine ID patterns
-    pattern1 = r'return\s*.*?\?\?\s*(this\.[a-z]+\.(?:mac)?[mM]achineId);'
-    content, count1 = re.subn(
-        pattern1,
-        r'return \1;',
-        content,
-        flags=re.MULTILINE
-    )
+    # Replace machine-id related code using sed
+    sed -i 's/"[^"]*\/etc\/machine-id[^"]*"/"uuidgen"/g' "$MAIN_JS" || {
+        echo "Error: Failed to modify main.js"
+        rm -rf "$TEMP_DIR"
+        exit 1
+    }
     
-    # Replace timeout pattern
-    pattern2 = r'=\s*r\$\(t\$\(y5\[mm\],\s*{\s*timeout:\s*5e3\s*}\)\.toString\(\)\)'
-    content, count2 = re.subn(
-        pattern2,
-        f'="{machine_id}"',
-        content
-    )
-    
-    if count1 > 0:
-        print(f"[√] Replaced {count1} machine ID patterns")
-    else:
-        print("[!] No machine ID patterns found")
-        
-    if count2 > 0:
-        print(f"[√] Replaced {count2} timeout patterns")
-    else:
-        print("[!] No timeout patterns found")
-    
-    return content
-
-file_path = pathlib.Path(sys.argv[1])
-machine_id = sys.argv[2]
-
-# Read, modify and write the file
-with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-    content = f.read()
-
-modified_content = replace_patterns(content, machine_id)
-
-with open(file_path, 'w', encoding='utf-8') as f:
-    f.write(modified_content)
-
-print("[√] Modifications complete")
-EOF
-    [ $? -eq 0 ] || { echo "Error: Failed to modify main.js."; exit 1; }
-    echo "Modified main.js to force machineId from configuration."
+    # Copy for inspection if needed
+    echo "Successfully modified main.js"
 else
     echo "Error: main.js not found at $MAIN_JS"
+    rm -rf "$TEMP_DIR"
     exit 1
+fi
+
+# Export the temporary directory path for later use
+APPIMAGETOOL_PATH="/tmp/appimagetool"
+
+# Function to download and setup appimagetool
+setup_appimagetool() {
+    echo "appimagetool not found, attempting to download..."
+    
+    # Download latest continuous build
+    if command -v curl &> /dev/null; then
+        curl -sL -o "$APPIMAGETOOL_PATH" "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage" || {
+            echo "Error: Failed to download appimagetool"
+            exit 1
+        }
+    elif command -v wget &> /dev/null; then
+        wget -O "$APPIMAGETOOL_PATH" "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage" || {
+            echo "Error: Failed to download appimagetool"
+            exit 1
+        }
+    else
+        echo "Error: Neither curl nor wget is available"
+        exit 1
+    fi
+    
+    # Make it executable
+    chmod +x "$APPIMAGETOOL_PATH" || {
+        echo "Error: Failed to make appimagetool executable"
+        exit 1
+    }
+    
+    echo "Successfully downloaded appimagetool to $APPIMAGETOOL_PATH"
+}
+
+# Check and setup appimagetool if needed
+if [ ! -f "$APPIMAGETOOL_PATH" ]; then
+    setup_appimagetool || {
+        echo "Error: Failed to setup appimagetool"
+        rm -rf "$TEMP_DIR"
+        exit 1
+    }
 fi
 
 # Repack the AppImage in-place (replacing the original)
-if command -v appimagetool &> /dev/null; then
-    echo "Repacking AppImage..."
-    ARCH=x86_64 appimagetool -n ./squashfs-root || { echo "Error: Repacking failed."; exit 1; }
-    NEW_IMAGE=$(ls -t Cursor-*.AppImage 2>/dev/null | head -n1)
-    if [ -z "$NEW_IMAGE" ]; then
-        echo "Error: No repacked AppImage found."
-        exit 1
-    fi
-    mv -f "$NEW_IMAGE" "$APPIMAGE_PATH" || { echo "Error: Overwriting failed."; exit 1; }
-    echo "Repacked AppImage updated at $APPIMAGE_PATH"
-    
-    # Cleanup extracted files
-    rm -rf ./squashfs-root || echo "Warning: Failed to cleanup extracted files"
-else
-    echo "Error: appimagetool not found. Cannot repack AppImage."
+echo "Repacking AppImage..."
+ARCH=x86_64 "$APPIMAGETOOL_PATH" -n ./squashfs-root >/dev/null 2>&1 || { 
+    echo "Error: Repacking failed."
+    rm -rf "$TEMP_DIR"
+    exit 1
+}
+
+NEW_IMAGE=$(ls -t Cursor-*.AppImage 2>/dev/null | head -n1)
+if [ -z "$NEW_IMAGE" ]; then
+    echo "Error: No repacked AppImage found."
+    rm -rf "$TEMP_DIR"
     exit 1
 fi
+
+mv -f "$NEW_IMAGE" "$APPIMAGE_PATH" || { 
+    echo "Error: Overwriting failed."
+    rm -rf "$TEMP_DIR"
+    exit 1
+}
+echo "Repacked AppImage updated at $APPIMAGE_PATH"
+
+# Cleanup temporary directory
+rm -rf "$TEMP_DIR"
 
 echo "Reset complete! Please launch Cursor using $APPIMAGE_PATH"
 
