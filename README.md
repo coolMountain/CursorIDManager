@@ -1,5 +1,7 @@
 # Cursor Reset Script
 
+[English Version](#usage)
+
 这是一个用于重置 Cursor IDE 设备标识的 PowerShell 脚本。该脚本支持 Cursor 0.45.x 版本（已在 0.45.8 版本上测试通过）。
 
 ## ⚠️ 免责声明
@@ -61,6 +63,27 @@ curl -fsSL https://raw.githubusercontent.com/hamflx/cursor-reset/main/reset.sh |
 pkill -9 Cursor
 ```
 
+### Linux
+
+1. 在 Cursor IDE 中退出当前登录的账号
+2. 完全关闭 Cursor IDE
+3. 确保 Cursor 是通过 AppImage 方式安装在 `/opt/cursor-bin/cursor-bin.AppImage`
+4. 打开终端，执行以下命令：
+
+   ```bash
+   curl -o /tmp/bash.sh https://raw.githubusercontent.com/hamflx/cursor-reset/refs/heads/main/linux/bash.sh && chmod +x /tmp/bash.sh && sudo /tmp/bash.sh
+   ```
+
+5. 启动 Cursor 并使用新账号登录（不要使用之前的账号）
+
+⚠️ 注意：目前脚本仅支持通过 AppImage 方式安装的 Cursor，且安装路径必须为 `/opt/cursor-bin/cursor-bin.AppImage`。
+
+如果脚本卡在"正在等待 Cursor 进程退出..."，可以在终端中执行以下命令强制结束 Cursor 进程：
+
+```bash
+pkill -9 Cursor
+```
+
 ## ⚠️ 重要注意事项
 
 ### Windows
@@ -68,27 +91,6 @@ pkill -9 Cursor
 脚本会修改系统注册表中的 `HKLM\SOFTWARE\Microsoft\Cryptography\MachineGuid`，这个值可能被其他软件用作设备标识，如果你购买了 Cursor 的正版授权或其他使用此注册表项作为设备标识的正版软件，修改后可能会导致这些软件的授权失效。
 
 原始的 MachineGuid 会被自动备份到 `%USERPROFILE%\MachineGuid_Backups` 目录下，如果需要恢复原始 MachineGuid，可以从备份目录中找到对应的备份文件，然后通过注册表编辑器恢复该值。
-
-### macOS
-
-脚本会修改以下文件：
-
-- `~/Library/Application Support/Cursor/User/globalStorage/storage.json`
-- `/Applications/Cursor.app/Contents/Resources/app/out/main.js`
-- `/Applications/Cursor.app/Contents/Resources/app/out/vs/code/node/cliProcessMain.js`
-
-所有被修改的文件都会自动创建备份（文件名后缀为 .bak）。如果需要恢复原始文件，可以使用 `--restore` 参数运行脚本。
-
-## 执行结果
-
-脚本执行成功后，会显示以下信息：
-
-- 备份文件的位置
-- 新生成的 MachineGuid
-- 新的 telemetry.machineId
-- 新的 telemetry.macMachineId
-- 新的 telemetry.devDeviceId
-- 新的 telemetry.sqmId
 
 ## 系统要求
 
@@ -103,6 +105,15 @@ pkill -9 Cursor
 
 - macOS 10.13 或更高版本
 - Cursor IDE 0.45.x 版本
+
+### Linux
+
+- Linux 操作系统
+- Python 3
+- sudo 权限
+- Cursor IDE 0.45.x 版本（仅支持 AppImage 安装方式）
+- appimagetool（用于重新打包 AppImage）
+- 安装路径必须为 `/opt/cursor-bin/cursor-bin.AppImage`
 
 ---
 
@@ -167,6 +178,27 @@ If the script is stuck at "Cursor is running", you can force kill Cursor process
 pkill -9 Cursor
 ```
 
+### Linux
+
+1. Sign out of your current account in Cursor IDE
+2. Completely close Cursor IDE
+3. Ensure Cursor is installed via AppImage at `/opt/cursor-bin/cursor-bin.AppImage`
+4. Open terminal and execute the following command:
+
+   ```bash
+   curl -o /tmp/bash.sh https://raw.githubusercontent.com/hamflx/cursor-reset/refs/heads/main/linux/bash.sh && chmod +x /tmp/bash.sh && sudo /tmp/bash.sh
+   ```
+
+5. Start Cursor and sign in with a new account (do not use the previous account)
+
+⚠️ Note: Currently, the script only supports Cursor installed via AppImage and the installation path must be `/opt/cursor-bin/cursor-bin.AppImage`.
+
+If the script is stuck at "Waiting for Cursor process to exit...", you can force kill Cursor processes by running the following command in the terminal:
+
+```bash
+pkill -9 Cursor
+```
+
 ## ⚠️ Important Notes
 
 ### Windows
@@ -174,27 +206,6 @@ pkill -9 Cursor
 The script modifies the system registry key `HKLM\SOFTWARE\Microsoft\Cryptography\MachineGuid`, which may be used by other software as a device identifier. If you have purchased a license for Cursor or other software that uses this registry key for device identification, modifying it may invalidate these software licenses.
 
 The original MachineGuid will be automatically backed up to the `%USERPROFILE%\MachineGuid_Backups` directory. If you need to restore the original MachineGuid, you can find the corresponding backup file in this directory and restore it using the registry editor.
-
-### macOS
-
-The script modifies the following files:
-
-- `~/Library/Application Support/Cursor/User/globalStorage/storage.json`
-- `/Applications/Cursor.app/Contents/Resources/app/out/main.js`
-- `/Applications/Cursor.app/Contents/Resources/app/out/vs/code/node/cliProcessMain.js`
-
-All modified files will be automatically backed up (file name suffix .bak). If you need to restore the original files, you can use the `--restore` parameter to run the script.
-
-## Execution Results
-
-After successful execution, the script will display:
-
-- Backup file location
-- New MachineGuid
-- New telemetry.machineId
-- New telemetry.macMachineId
-- New telemetry.devDeviceId
-- New telemetry.sqmId
 
 ## System Requirements
 
@@ -209,3 +220,12 @@ After successful execution, the script will display:
 
 - macOS 10.13 or higher
 - Cursor IDE 0.45.x
+
+### Linux
+
+- Linux 操作系统
+- Python 3
+- sudo 权限
+- Cursor IDE 0.45.x 版本（仅支持 AppImage 安装方式）
+- appimagetool（用于重新打包 AppImage）
+- 安装路径必须为 `/opt/cursor-bin/cursor-bin.AppImage`
