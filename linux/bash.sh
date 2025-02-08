@@ -1,17 +1,37 @@
 #!/bin/bash
-# Check for root privileges
-if [ "$EUID" -ne 0 ]; then
-    echo "Please run this script using sudo."
+
+# Parse command line arguments
+APPIMAGE_PATH=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --appimage)
+            APPIMAGE_PATH="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 --appimage /path/to/cursor.AppImage"
+            exit 1
+            ;;
+    esac
+done
+
+# Validate AppImage path
+if [ -z "$APPIMAGE_PATH" ]; then
+    echo "Error: AppImage path is required"
+    echo "Usage: $0 --appimage /path/to/cursor.AppImage"
+    exit 1
+fi
+
+if [ ! -f "$APPIMAGE_PATH" ]; then
+    echo "Error: AppImage file not found at $APPIMAGE_PATH"
     exit 1
 fi
 
 # Get the real user
-REAL_USER=${SUDO_USER}
+REAL_USER=$(whoami)
 if [ -z "$REAL_USER" ]; then
-    REAL_USER=$(logname)
-fi
-if [ -z "$REAL_USER" ]; then
-    echo "Error: Unable to determine the real user."
+    echo "Error: Unable to determine the user."
     exit 1
 fi
 REAL_HOME=$(eval echo "~$REAL_USER")
@@ -136,59 +156,12 @@ echo "New telemetry.devDeviceId: $NEW_DEV_DEVICE_ID"
 echo "New telemetry.sqmId: $NEW_SQM_ID"
 echo ""
 
-# Automatically update PATH
-SHELL_CONFIG=""
-PATH_EXPORT="export PATH=\"$FAKE_COMMANDS_DIR:\$PATH\""
+# After updating PATH configuration, extract the AppImage
+APPIMAGE_DIR="$(dirname "$APPIMAGE_PATH")"
+cd "$APPIMAGE_DIR" || { echo "Error: Unable to change to AppImage directory"; exit 1; }
 
-# Detect user's default shell
-USER_SHELL=$(basename "$SHELL")
-if [ -z "$USER_SHELL" ]; then
-    USER_SHELL=$(basename $(grep "^$REAL_USER:" /etc/passwd | cut -d: -f7))
-fi
-
-# 根据不同的 shell 选择配置文件
-case "$USER_SHELL" in
-    "zsh")
-        SHELL_CONFIG="$REAL_HOME/.zshrc"
-        ;;
-    "bash")
-        if [ -f "$REAL_HOME/.bash_profile" ]; then
-            SHELL_CONFIG="$REAL_HOME/.bash_profile"
-        elif [ -f "$REAL_HOME/.bashrc" ]; then
-            SHELL_CONFIG="$REAL_HOME/.bashrc"
-        else
-            SHELL_CONFIG="$REAL_HOME/.profile"
-        fi
-        ;;
-    *)
-        SHELL_CONFIG="$REAL_HOME/.profile"
-        ;;
-esac
-
-# Check configuration existence
-if ! grep -q "$FAKE_COMMANDS_DIR" "$SHELL_CONFIG" 2>/dev/null; then
-    sudo -u $REAL_USER bash -c "echo '' >> \"$SHELL_CONFIG\"" || {
-        echo "Warning: Unable to update shell configuration file"
-    }
-    sudo -u $REAL_USER bash -c "echo '# Added by Cursor Reset Script' >> \"$SHELL_CONFIG\"" || {
-        echo "Warning: Unable to update shell configuration file"
-    }
-    sudo -u $REAL_USER bash -c "echo '$PATH_EXPORT' >> \"$SHELL_CONFIG\"" || true
-    
-    # Apply configuration immediately
-    sudo -u $REAL_USER bash -c "export PATH=\"$FAKE_COMMANDS_DIR:\$PATH\""
-    
-    echo "PATH configuration has been automatically added to $SHELL_CONFIG"
-    echo "Configuration is now active, no manual action required"
-else
-    echo "PATH configuration already exists in $SHELL_CONFIG, no need to add again"
-fi
-
-# After updating PATH configuration, extract the AppImage in /opt/cursor-bin
-cd /opt/cursor-bin || { echo "Error: Unable to change to /opt/cursor-bin"; exit 1; }
-APPIMAGE_PATH="./cursor-bin.AppImage"
 if [ ! -d "squashfs-root" ]; then
-    $APPIMAGE_PATH --appimage-extract || { echo "Error: Extraction failed."; exit 1; }
+    "$APPIMAGE_PATH" --appimage-extract || { echo "Error: Extraction failed."; exit 1; }
 fi
 echo "Extracted AppImage to: ./squashfs-root"
 
@@ -196,7 +169,7 @@ echo "Extracted AppImage to: ./squashfs-root"
 MAIN_JS="./squashfs-root/resources/app/out/main.js"
 if [ -f "$MAIN_JS" ]; then
     # Ensure we have write permissions 
-    sudo chown -R root:root ./squashfs-root || { echo "Error: Unable to set permissions"; exit 1; }
+    chmod -R u+w ./squashfs-root || { echo "Error: Unable to set permissions"; exit 1; }
     
     python3 - "$MAIN_JS" "$NEW_MACHINE_ID" <<'EOF'
 import re, sys, pathlib

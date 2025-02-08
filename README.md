@@ -71,7 +71,7 @@ pkill -9 Cursor
 4. 打开终端，执行以下命令：
 
    ```bash
-   curl -o /tmp/bash.sh https://raw.githubusercontent.com/hamflx/cursor-reset/refs/heads/main/linux/bash.sh && chmod +x /tmp/bash.sh && sudo /tmp/bash.sh
+   curl -o /tmp/bash.sh https://raw.githubusercontent.com/hamflx/cursor-reset/refs/heads/main/linux/bash.sh && chmod +x /tmp/bash.sh && /tmp/bash.sh
    ```
 
 5. 启动 Cursor 并使用新账号登录（不要使用之前的账号）
@@ -110,7 +110,6 @@ pkill -9 Cursor
 
 - Linux 操作系统
 - Python 3
-- sudo 权限
 - Cursor IDE 0.45.x 版本（仅支持 AppImage 安装方式）
 - appimagetool（用于重新打包 AppImage）
 - 安装路径必须为 `/opt/cursor-bin/cursor-bin.AppImage`
@@ -186,7 +185,7 @@ pkill -9 Cursor
 4. Open terminal and execute the following command:
 
    ```bash
-   curl -o /tmp/bash.sh https://raw.githubusercontent.com/hamflx/cursor-reset/refs/heads/main/linux/bash.sh && chmod +x /tmp/bash.sh && sudo /tmp/bash.sh
+   curl -o /tmp/bash.sh https://raw.githubusercontent.com/hamflx/cursor-reset/refs/heads/main/linux/bash.sh && chmod +x /tmp/bash.sh && /tmp/bash.sh
    ```
 
 5. Start Cursor and sign in with a new account (do not use the previous account)
@@ -225,7 +224,6 @@ The original MachineGuid will be automatically backed up to the `%USERPROFILE%\M
 
 - Linux 操作系统
 - Python 3
-- sudo 权限
 - Cursor IDE 0.45.x 版本（仅支持 AppImage 安装方式）
 - appimagetool（用于重新打包 AppImage）
 - 安装路径必须为 `/opt/cursor-bin/cursor-bin.AppImage`
