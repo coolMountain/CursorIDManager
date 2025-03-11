@@ -1,0 +1,5 @@
+   # 在项目根目录创建 .gitignore 文件，添加以下内容：
+   *.pdb
+   *.log
+   .vs/
+   .vscode/
