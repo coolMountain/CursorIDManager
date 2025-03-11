@@ -2,7 +2,7 @@
 
 一个用于管理 Cursor IDE 设备标识的图形界面工具。支持重置设备标识和恢复到原始系统标识。
 
-在https://github.com/hamflx/cursor-reset项目上进行进一步完善
+在 https://github.com/hamflx/cursor-reset 项目上进行进一步完善
 
 ⚠️ win+R输入regedit,搜索HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography即是修改的系统注册表
 
